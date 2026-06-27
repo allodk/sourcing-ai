@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sourcing.AI — Agent Fournisseurs</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00C896">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sourcing.AI">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:#0A1520;color:#F5F0E8;-webkit-font-smoothing:antialiased}
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0A1520}::-webkit-scrollbar-thumb{background:#1E3A5F;border-radius:2px}
+@keyframes pulse{0%,80%,100%{transform:scale(0.6);opacity:0.5}40%{transform:scale(1);opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.app{display:flex;flex-direction:column;height:100vh}
+.header{background:#0F1923;border-bottom:1px solid #1E3A5F;padding:12px 16px;display:flex;align-items:center;gap:12;padding-top:calc(12px + var(--safe-top))}
+.logo{width:34px;height:34px;background:linear-gradient(135deg,#00C896,#1E3A5F);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.header-title{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;letter-spacing:1px}
+.header-sub{font-size:9px;color:#8A9BB0;margin-top:1px}
+.header-stats{margin-left:auto;display:flex;gap:16px}
+.stat{text-align:center}
+.stat-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700}
+.stat-label{font-size:8px;color:#8A9BB0}
+.filters{background:#0F1923;border-bottom:1px solid #1E3A5F;padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.filters input,.filters select{background:#0A1520;border:1px solid #1E3A5F;border-radius:7px;padding:7px 10px;color:#F5F0E8;font-size:11px;font-family:'Inter',sans-serif;outline:none}
+.filters input{flex:1;min-width:0}
+.range-wrap{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.range-wrap span{font-size:10px;color:#8A9BB0}
+.range-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#00C896;min-width:20px}
+input[type=range]{accent-color:#00C896;width:70px}
+.main{display:flex;flex:1;overflow:hidden}
+.left{width:42%;border-right:1px solid #1E3A5F;overflow-y:auto;padding:12px}
+.right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;background:#0F1923;border-bottom:1px solid #1E3A5F}
+.tab{flex:1;padding:10px 2px;background:transparent;border:none;border-bottom:2px solid transparent;color:#8A9BB0;font-size:10px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s}
+.tab.active{border-bottom-color:#00C896;color:#00C896}
+.panel{flex:1;overflow-y:auto;padding:16px;display:none;flex-direction:column}
+.panel.active{display:flex}
+.card{background:#111D2B;border:1px solid #1E3A5F;border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all 0.2s;animation:fadeIn 0.3s ease}
+.card.selected{background:#162840;border-color:#00C896;box-shadow:0 0 0 1px #00C89640}
+.card-top{display:flex;gap:10px;align-items:flex-start}
+.card-name{font-size:13px;font-weight:600;color:#F5F0E8;margin-bottom:2px}
+.card-meta{font-size:10px;color:#8A9BB0;margin-bottom:6px}
+.card-id{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#00C896}
+.badge{font-size:9px;padding:2px 7px;border-radius:20px}
+.tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.tag{font-size:8px;color:#C4A35A;background:#C4A35A18;border:1px solid #C4A35A30;padding:2px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
+.cert{font-size:8px;color:#5A8AB0;background:#1E3A5F;padding:2px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
+.card-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.btn-shortlist{font-size:9px;background:transparent;border:1px solid #2A5080;border-radius:6px;padding:3px 8px;color:#8A9BB0;cursor:pointer;flex-shrink:0}
+.btn-shortlist.in{background:#00C89620;border-color:#00C896;color:#00C896}
+/* Score ring */
+.ring{position:relative;flex-shrink:0}
+.ring svg{transform:rotate(-90deg)}
+.ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-val{font-family:'IBM Plex Mono',monospace;font-weight:700}
+.ring-sub{font-family:'IBM Plex Mono',monospace;color:#8A9BB0}
+/* Chat */
+.chat-header{background:#111D2B;border-bottom:1px solid #1E3A5F;padding:10px 14px;display:flex;align-items:center;gap:8px}
+.chat-messages{flex:1;overflow-y:auto;padding:14px}
+.bubble-wrap{display:flex;margin-bottom:12px;animation:fadeIn 0.25s ease}
+.bubble-wrap.user{justify-content:flex-end}
+.bot-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#00C896,#1E3A5F);display:flex;align-items:center;justify-content:center;font-size:12px;margin-right:7px;flex-shrink:0;margin-top:2px}
+.bubble{max-width:78%;padding:10px 13px;font-size:12px;line-height:1.65;white-space:pre-wrap;color:#F5F0E8}
+.bubble.bot{border-radius:14px 14px 14px 4px;background:#111D2B;border:1px solid #1E3A5F}
+.bubble.user{border-radius:14px 14px 4px 14px;background:#1E3A5F;border:1px solid #2A5080}
+.typing{display:flex;align-items:center;gap:7px;padding:4px 0}
+.dot{width:6px;height:6px;border-radius:50%;background:#00C896;animation:pulse 1.2s ease-in-out infinite}
+.chat-input{border-top:1px solid #1E3A5F;padding:10px 14px;background:#0F1923}
+.suggestions{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.sugg{font-size:9px;background:#111D2B;border:1px solid #1E3A5F;border-radius:12px;padding:3px 9px;color:#8A9BB0;cursor:pointer}
+.input-row{display:flex;gap:7px}
+.input-row input{flex:1;background:#111D2B;border:1px solid #1E3A5F;border-radius:8px;padding:9px 11px;color:#F5F0E8;font-size:12px;font-family:'Inter',sans-serif;outline:none}
+.send-btn{background:linear-gradient(135deg,#00C896,#0A8A66);border:none;border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;cursor:pointer}
+.send-btn:disabled{background:#1E3A5F;cursor:default}
+/* Fiche */
+.fiche-header{display:flex;gap:14px;align-items:center;margin-bottom:20px}
+.fiche-name{font-size:17px;font-weight:700;margin-bottom:3px}
+.fiche-sub{font-size:11px;color:#8A9BB0}
+.fiche-id{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#00C896;margin-bottom:3px}
+.info-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #1E3A5F14}
+.info-label{font-size:11px;color:#8A9BB0}
+.info-val{font-size:11px;font-family:'IBM Plex Mono',monospace;color:#F5F0E8;text-align:right;max-width:60%;word-break:break-all}
+.section-title{font-size:9px;color:#8A9BB0;letter-spacing:1px;margin:16px 0 8px}
+.metric-row{margin-bottom:10px}
+.metric-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.metric-label{font-size:11px;color:#8A9BB0}
+.metric-val{font-family:'IBM Plex Mono',monospace;font-size:11px}
+.metric-bar{height:4px;background:#1E3A5F;border-radius:2px}
+.metric-fill{height:4px;border-radius:2px;transition:width 0.6s ease}
+/* Comparer */
+.compare-table{width:100%;border-collapse:collapse;font-size:10px;margin-top:12px}
+.compare-table th{text-align:left;padding:7px 8px;color:#8A9BB0;border-bottom:1px solid #1E3A5F;font-weight:500}
+.compare-table th.center{text-align:center}
+.compare-table td{padding:7px 8px;border-bottom:1px solid #1E3A5F0A}
+.compare-table td.center{text-align:center;font-family:'IBM Plex Mono',monospace}
+.compare-table td.best{color:#00C896;font-weight:700;background:#00C89610}
+.compare-actions{display:flex;gap:8px;margin-top:14px}
+.btn-primary{flex:1;background:linear-gradient(135deg,#00C896,#0A8A66);border:none;border-radius:9px;padding:11px;color:#fff;font-size:11px;cursor:pointer}
+.btn-danger{background:transparent;border:1px solid #E0525240;border-radius:9px;padding:11px 12px;color:#E05252;font-size:11px;cursor:pointer}
+/* Email */
+.email-box{background:#111D2B;border:1px solid #1E3A5F;border-radius:11px;padding:14px;margin-bottom:14px}
+.email-top{display:flex;justify-content:space-between;align-items:center}
+.email-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.email-contact{font-size:10px;color:#8A9BB0}
+.btn-gen{background:linear-gradient(135deg,#00C896,#0A8A66);border:none;border-radius:9px;padding:9px 14px;color:#fff;font-size:11px;cursor:pointer}
+.btn-gen:disabled{background:#1E3A5F;cursor:default}
+.email-result{background:#111D2B;border:1px solid #1E3A5F;border-radius:11px;padding:16px}
+.email-result-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.email-result-label{font-size:9px;color:#8A9BB0;letter-spacing:1px}
+.btn-copy{font-size:10px;background:#1E3A5F;border:1px solid #2A5080;border-radius:5px;padding:4px 10px;color:#8A9BB0;cursor:pointer}
+.btn-copy.copied{background:#00C89620;border-color:#00C896;color:#00C896}
+.email-text{font-family:'Inter',sans-serif;font-size:11px;line-height:1.75;color:#F5F0E8;white-space:pre-wrap}
+/* Empty states */
+.empty{text-align:center;padding:50px 20px;color:#8A9BB0}
+.empty-icon{font-size:36px;margin-bottom:10px}
+.empty-text{font-size:12px}
+/* Mobile bottom nav */
+.mobile-nav{display:none;background:#0F1923;border-top:1px solid #1E3A5F;padding-bottom:var(--safe-bottom)}
+.mobile-tab{flex:1;padding:9px 2px 7px;background:transparent;border:none;border-top:2px solid transparent;color:#8A9BB0;font-size:7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mobile-tab.active{border-top-color:#00C896;color:#00C896}
+.mobile-tab-icon{font-size:17px}
+/* Radar */
+svg text{user-select:none}
+/* Responsive */
+@media(max-width:767px){
+  .left,.right{width:100%!important}
+  .main{flex-direction:column}
+  .right .tabs{display:none}
+  .mobile-nav{display:flex}
+  .panel-list,.panel-chat,.panel-fiche,.panel-comparer,.panel-email{display:none;flex-direction:column}
+  .panel-list.mobile-active,.panel-chat.mobile-active,.panel-fiche.mobile-active,.panel-comparer.mobile-active,.panel-email.mobile-active{display:flex}
+  .left{border-right:none;border-bottom:1px solid #1E3A5F}
+  .main{height:calc(100vh - 110px)}
+}
+@media(min-width:768px){
+  .mobile-nav{display:none!important}
+  .panel{display:none;flex-direction:column}
+  .panel.active{display:flex}
+}
+select option{background:#0A1520}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">🔍</div>
+  <div style="margin-left:10px">
+    <div class="header-title">SOURCING.AI</div>
+    <div class="header-sub">Agent de sourcing fournisseurs B2B</div>
+  </div>
+  <div class="header-stats">
+    <div class="stat"><div class="stat-val" id="stat-results" style="color:#00C896">8</div><div class="stat-label">RÉSULTATS</div></div>
+    <div class="stat"><div class="stat-val" id="stat-shortlist" style="color:#C4A35A">0</div><div class="stat-label">SHORTLIST</div></div>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters">
+  <input type="text" id="search" placeholder="Nom, tag, ID..." oninput="applyFilters()">
+  <select id="sector" onchange="applyFilters()">
+    <option>Tous</option>
+    <option>Électronique</option><option>Métallurgie</option><option>Plastiques</option>
+    <option>Textile industriel</option><option>Chimie</option><option>Emballage</option><option>Hydraulique</option>
+  </select>
+  <select id="country" onchange="applyFilters()">
+    <option>Tous</option>
+    <option>France</option><option>Allemagne</option><option>Italie</option><option>Maroc</option>
+    <option>Pologne</option><option>Taïwan</option><option>Espagne</option><option>Belgique</option>
+  </select>
+  <div class="range-wrap">
+    <span>≥</span>
+    <input type="range" min="0" max="90" step="5" value="0" id="minscore" oninput="document.getElementById('scoreval').textContent=this.value;applyFilters()">
+    <span class="range-val" id="scoreval">0</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main">
+
+  <!-- LEFT: supplier list -->
+  <div class="left panel-list" id="panel-list">
+    <div id="supplier-list"></div>
+  </div>
+
+  <!-- RIGHT: tabs + panels -->
+  <div class="right">
+    <div class="tabs" id="desktop-tabs">
+      <button class="tab active" onclick="switchTab('chat')">💬 Chat</button>
+      <button class="tab" onclick="switchTab('fiche')">📋 Fiche</button>
+      <button class="tab" id="tab-comparer" onclick="switchTab('comparer')">⚖️ Comparer</button>
+      <button class="tab" onclick="switchTab('email')">✉️ Email</button>
+    </div>
+
+    <!-- CHAT PANEL -->
+    <div class="panel panel-chat active" id="panel-chat">
+      <div class="chat-header" id="chat-header" style="display:none">
+        <div id="chat-ring"></div>
+        <div>
+          <div class="card-id" id="chat-supplier-id"></div>
+          <div style="font-size:13px;font-weight:600" id="chat-supplier-name"></div>
+          <div style="font-size:10px;color:#8A9BB0" id="chat-supplier-meta"></div>
+        </div>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="bubble-wrap">
+          <div class="bot-avatar">🤖</div>
+          <div class="bubble bot">Bonjour ! Je suis votre agent de sourcing. Sélectionnez un fournisseur pour l'analyser, ou posez-moi une question directement.</div>
+        </div>
+      </div>
+      <div class="chat-input">
+        <div class="suggestions">
+          <button class="sugg" onclick="setInput('Comparer les meilleurs fournisseurs')">Comparer les meilleurs</button>
+          <button class="sugg" onclick="setInput('Quels fournisseurs sont certifiés ISO 14001 ?')">ISO 14001 dispo ?</button>
+          <button class="sugg" onclick="setInput('Qui a le délai le plus court ?')">Délai le plus court ?</button>
+        </div>
+        <div class="input-row">
+          <input type="text" id="chat-input" placeholder="Votre question..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="send-btn" id="send-btn" onclick="sendChat()">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FICHE PANEL -->
+    <div class="panel panel-fiche" id="panel-fiche">
+      <div id="fiche-content">
+        <div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sélectionnez un fournisseur.</div></div>
+      </div>
+    </div>
+
+    <!-- COMPARER PANEL -->
+    <div class="panel panel-comparer" id="panel-comparer">
+      <div id="comparer-content">
+        <div class="empty"><div class="empty-icon">⚖️</div><div class="empty-text">Ajoutez 2 à 4 fournisseurs à la shortlist.</div></div>
+      </div>
+    </div>
+
+    <!-- EMAIL PANEL -->
+    <div class="panel panel-email" id="panel-email">
+      <div id="email-content">
+        <div class="empty"><div class="empty-icon">✉️</div><div class="empty-text">Sélectionnez un fournisseur.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE NAV -->
+<nav class="mobile-nav" id="mobile-nav">
+  <button class="mobile-tab active" id="mnav-list" onclick="mobileTab('list')"><span class="mobile-tab-icon">🔍</span>Recherche</button>
+  <button class="mobile-tab" id="mnav-chat" onclick="mobileTab('chat')"><span class="mobile-tab-icon">💬</span>Chat IA</button>
+  <button class="mobile-tab" id="mnav-fiche" onclick="mobileTab('fiche')"><span class="mobile-tab-icon">📋</span>Fiche</button>
+  <button class="mobile-tab" id="mnav-comparer" onclick="mobileTab('comparer')"><span class="mobile-tab-icon">⚖️</span>Comparer</button>
+  <button class="mobile-tab" id="mnav-email" onclick="mobileTab('email')"><span class="mobile-tab-icon">✉️</span>Email</button>
+</nav>
+
+</div>
+
+<script>
+const MISTRAL_KEY = "VOTRE_CLE_MISTRAL_ICI"; // Remplacé par variable env côté serveur
+
+const SUPPLIERS = [
+  {id:"F-001",name:"TechComposants SAS",sector:"Électronique",country:"France",certifications:["ISO 9001","RoHS"],minOrder:500,leadTime:7,score:92,revenue:"12M€",employees:85,founded:2008,tags:["PCB","Capteurs","Microcontrôleurs"],status:"Actif",contact:"contact@techcomposants.fr",website:"techcomposants.fr",reliability:94,quality:91,pricing:78,flexibility:88},
+  {id:"F-002",name:"MetalPro GmbH",sector:"Métallurgie",country:"Allemagne",certifications:["ISO 9001","ISO 14001"],minOrder:1000,leadTime:14,score:87,revenue:"28M€",employees:210,founded:1995,tags:["Acier inox","Aluminium","Usinage CNC"],status:"Actif",contact:"info@metalpro.de",website:"metalpro.de",reliability:90,quality:93,pricing:65,flexibility:72},
+  {id:"F-003",name:"PlastiForm Italia",sector:"Plastiques",country:"Italie",certifications:["ISO 9001"],minOrder:200,leadTime:10,score:74,revenue:"7M€",employees:42,founded:2013,tags:["Injection plastique","ABS","Polycarbonate"],status:"Actif",contact:"info@plastiform.it",website:"plastiform.it",reliability:76,quality:75,pricing:88,flexibility:80},
+  {id:"F-004",name:"LogiTex Morocco",sector:"Textile industriel",country:"Maroc",certifications:["OEKO-TEX"],minOrder:300,leadTime:21,score:81,revenue:"5M€",employees:130,founded:2010,tags:["Tissus techniques","Cordage","Sangles"],status:"Actif",contact:"sourcing@logitex.ma",website:"logitex.ma",reliability:82,quality:79,pricing:92,flexibility:85},
+  {id:"F-005",name:"ChemBase Poland",sector:"Chimie",country:"Pologne",certifications:["ISO 9001","REACH"],minOrder:800,leadTime:12,score:68,revenue:"9M€",employees:60,founded:2016,tags:["Résines","Adhésifs","Solvants"],status:"En évaluation",contact:"b2b@chembase.pl",website:"chembase.pl",reliability:65,quality:70,pricing:85,flexibility:60},
+  {id:"F-006",name:"PrecisionParts Taiwan",sector:"Électronique",country:"Taïwan",certifications:["ISO 9001","UL"],minOrder:250,leadTime:28,score:89,revenue:"35M€",employees:320,founded:2001,tags:["Connecteurs","PCB","Câbles"],status:"Actif",contact:"sales@precisionparts.tw",website:"precisionparts.tw",reliability:91,quality:92,pricing:80,flexibility:70},
+  {id:"F-007",name:"EcoPackage Spain",sector:"Emballage",country:"Espagne",certifications:["FSC","ISO 14001"],minOrder:400,leadTime:8,score:77,revenue:"6M€",employees:55,founded:2014,tags:["Carton recyclé","Bioplastique","Étiquettes"],status:"Actif",contact:"hello@ecopackage.es",website:"ecopackage.es",reliability:79,quality:76,pricing:90,flexibility:82},
+  {id:"F-008",name:"HydroTech Belgium",sector:"Hydraulique",country:"Belgique",certifications:["ISO 9001","CE"],minOrder:600,leadTime:15,score:83,revenue:"18M€",employees:95,founded:2005,tags:["Vannes","Pompes","Joints"],status:"Actif",contact:"procurement@hydrotech.be",website:"hydrotech.be",reliability:85,quality:87,pricing:70,flexibility:75},
+];
+
+let selected = null;
+let shortlist = [];
+let chatHistory = [];
+let loading = false;
+let filtered = [...SUPPLIERS];
+
+function scoreColor(s){return s>=85?"#00C896":s>=70?"#C4A35A":"#E05252"}
+
+function ring(score,size=58,sw=5){
+  const r=(size-sw*2)/2,c=2*Math.PI*r,d=(score/100)*c,col=scoreColor(score),cx=size/2;
+  return `<div class="ring" style="width:${size}px;height:${size}px">
+    <svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
+      <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="#1E3A5F" stroke-width="${sw}"/>
+      <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-dasharray="${d} ${c}" stroke-linecap="round"/>
+    </svg>
+    <div class="ring-label">
+      <span class="ring-val" style="font-size:${size*0.21}px;color:${col}">${score}</span>
+      <span class="ring-sub" style="font-size:${size*0.12}px">SCORE</span>
+    </div>
+  </div>`;
+}
+
+function renderList(){
+  const sc=scoreColor;
+  document.getElementById('stat-results').textContent=filtered.length;
+  document.getElementById('supplier-list').innerHTML=filtered.sort((a,b)=>b.score-a.score).map(s=>`
+    <div class="card ${selected?.id===s.id?'selected':''}" onclick="selectSupplier('${s.id}')">
+      <div class="card-top">
+        ${ring(s.score)}
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+            <span class="card-id">${s.id}</span>
+            <span class="badge" style="color:${s.status==='Actif'?'#00C896':'#C4A35A'};background:${s.status==='Actif'?'#00C89620':'#C4A35A20'}">${s.status}</span>
+          </div>
+          <div class="card-name">${s.name}</div>
+          <div class="card-meta">${s.sector} · ${s.country} · ${s.leadTime}j · min ${s.minOrder}€</div>
+          <div class="tags">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <div style="display:flex;gap:3px;flex-wrap:wrap">${s.certifications.map(c=>`<span class="cert">${c}</span>`).join('')}</div>
+        <button class="btn-shortlist ${shortlist.find(x=>x.id===s.id)?'in':''}" onclick="event.stopPropagation();toggleShortlist('${s.id}')">${shortlist.find(x=>x.id===s.id)?'★ Shortlist':'☆ Ajouter'}</button>
+      </div>
+    </div>`).join('');
+}
+
+function applyFilters(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const sec=document.getElementById('sector').value;
+  const cou=document.getElementById('country').value;
+  const ms=+document.getElementById('minscore').value;
+  filtered=SUPPLIERS.filter(s=>
+    (!q||s.name.toLowerCase().includes(q)||s.tags.some(t=>t.toLowerCase().includes(q))||s.id.toLowerCase().includes(q))&&
+    (sec==='Tous'||s.sector===sec)&&(cou==='Tous'||s.country===cou)&&s.score>=ms
+  );
+  renderList();
+}
+
+function toggleShortlist(id){
+  const s=SUPPLIERS.find(x=>x.id===id);
+  if(shortlist.find(x=>x.id===id)){shortlist=shortlist.filter(x=>x.id!==id)}
+  else if(shortlist.length<4){shortlist.push(s)}
+  document.getElementById('stat-shortlist').textContent=shortlist.length;
+  document.getElementById('tab-comparer').textContent=`⚖️ Comparer${shortlist.length>0?` (${shortlist.length})`:''}`;
+  renderList();
+  if(document.getElementById('panel-comparer').classList.contains('active')||
+     document.getElementById('panel-comparer').classList.contains('mobile-active')) renderComparer();
+}
+
+function selectSupplier(id){
+  selected=SUPPLIERS.find(s=>s.id===id);
+  renderList();
+  // Update chat header
+  document.getElementById('chat-header').style.display='flex';
+  document.getElementById('chat-ring').innerHTML=ring(selected.score,46,4);
+  document.getElementById('chat-supplier-id').textContent=selected.id;
+  document.getElementById('chat-supplier-name').textContent=selected.name;
+  document.getElementById('chat-supplier-meta').textContent=`${selected.sector} · ${selected.country}`;
+  // Auto analyze
+  const msg=`Fournisseur sélectionné : ${selected.name} (${selected.id}). Score ${selected.score}/100. Analysez en 3 points : ✅ Forces, ⚠️ Points d'attention, 💡 Recommandation.`;
+  sendToAI(msg);
+  // Switch to chat
+  if(window.innerWidth<768) mobileTab('chat'); else switchTab('chat');
+  renderFiche();
+  renderEmail();
+}
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>{
+    const tabs=['chat','fiche','comparer','email'];
+    b.classList.toggle('active',tabs[i]===t);
+  });
+  document.querySelectorAll('.panel').forEach(p=>{
+    const id=p.id.replace('panel-','');
+    p.classList.toggle('active',id===t);
+  });
+  if(t==='comparer') renderComparer();
+}
+
+function mobileTab(t){
+  const panels=['list','chat','fiche','comparer','email'];
+  panels.forEach(p=>{
+    const el=document.getElementById('panel-'+p);
+    if(el) el.classList.toggle('mobile-active',p===t);
+  });
+  document.querySelectorAll('.mobile-tab').forEach(b=>{
+    b.classList.toggle('active',b.id===`mnav-${t}`);
+  });
+  if(t==='comparer') renderComparer();
+}
+
+function setInput(txt){document.getElementById('chat-input').value=txt}
+
+async function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const txt=inp.value.trim();
+  if(!txt||loading) return;
+  inp.value='';
+  sendToAI(txt);
+}
+
+async function sendToAI(userMsg){
+  loading=true;
+  document.getElementById('send-btn').disabled=true;
+  addBubble('user',userMsg);
+  chatHistory.push({role:'user',content:userMsg});
+  // Typing
+  const typing=document.createElement('div');
+  typing.className='typing';
+  typing.id='typing';
+  typing.innerHTML='<div class="bot-avatar">🤖</div><div style="display:flex;gap:4px"><div class="dot" style="animation-delay:0s"></div><div class="dot" style="animation-delay:0.2s"></div><div class="dot" style="animation-delay:0.4s"></div></div>';
+  document.getElementById('chat-messages').appendChild(typing);
+  scrollChat();
+
+  const system=`Vous êtes un expert en sourcing achats/fournisseurs B2B. Répondez en français, concis et professionnel. Utilisez ✅ ⚠️ 💡 pour structurer. Fournisseur sélectionné: ${selected?JSON.stringify(selected):'aucun'}. Base: ${JSON.stringify(SUPPLIERS)}.`;
+
+  try{
+    const res=await fetch('https://api.mistral.ai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${window.MISTRAL_API_KEY||''}`},
+      body:JSON.stringify({model:'mistral-small-latest',max_tokens:800,messages:[{role:'system',content:system},...chatHistory]})
+    });
+    const d=await res.json();
+    const reply=d.choices?.[0]?.message?.content||'Erreur de réponse.';
+    chatHistory.push({role:'assistant',content:reply});
+    document.getElementById('typing')?.remove();
+    addBubble('assistant',reply);
+  }catch(e){
+    document.getElementById('typing')?.remove();
+    addBubble('assistant','❌ Erreur de connexion. Vérifiez votre clé API Mistral.');
+  }
+  loading=false;
+  document.getElementById('send-btn').disabled=false;
+}
+
+function addBubble(role,text){
+  const wrap=document.createElement('div');
+  wrap.className=`bubble-wrap ${role==='user'?'user':''}`;
+  wrap.innerHTML=role==='user'
+    ?`<div class="bubble user">${text}</div>`
+    :`<div class="bot-avatar">🤖</div><div class="bubble bot">${text}</div>`;
+  document.getElementById('chat-messages').appendChild(wrap);
+  scrollChat();
+}
+
+function scrollChat(){
+  const m=document.getElementById('chat-messages');
+  m.scrollTop=m.scrollHeight;
+}
+
+function renderFiche(){
+  if(!selected){document.getElementById('fiche-content').innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sélectionnez un fournisseur.</div></div>';return}
+  const s=selected;
+  document.getElementById('fiche-content').innerHTML=`
+    <div class="fiche-header">${ring(s.score,78,6)}<div><div class="fiche-id">${s.id}</div><div class="fiche-name">${s.name}</div><div class="fiche-sub">${s.sector} · ${s.country} · Fondé ${s.founded}</div></div></div>
+    ${[["CA",s.revenue],["Effectif",s.employees+" employés"],["Commande min.",s.minOrder+"€"],["Délai",s.leadTime+"j"],["Contact",s.contact],["Site",s.website],["Statut",s.status]].map(([l,v])=>`<div class="info-row"><span class="info-label">${l}</span><span class="info-val">${v}</span></div>`).join('')}
+    <div class="section-title">CERTIFICATIONS</div>
+    <div class="tags">${s.certifications.map(c=>`<span class="cert" style="font-size:11px;padding:4px 9px">${c}</span>`).join('')}</div>
+    <div class="section-title">SPÉCIALITÉS</div>
+    <div class="tags">${s.tags.map(t=>`<span class="tag" style="font-size:11px;padding:4px 9px">${t}</span>`).join('')}</div>
+    <div class="section-title">MÉTRIQUES</div>
+    ${[["Fiabilité","reliability","#00C896"],["Qualité","quality","#5A8AB0"],["Prix","pricing","#C4A35A"],["Flexibilité","flexibility","#E05252"]].map(([l,k,c])=>`
+    <div class="metric-row"><div class="metric-top"><span class="metric-label">${l}</span><span class="metric-val" style="color:${c}">${s[k]}%</span></div>
+    <div class="metric-bar"><div class="metric-fill" style="width:${s[k]}%;background:${c}"></div></div></div>`).join('')}`;
+}
+
+function renderComparer(){
+  if(shortlist.length<2){
+    document.getElementById('comparer-content').innerHTML='<div class="empty"><div class="empty-icon">⚖️</div><div class="empty-text">Ajoutez 2 à 4 fournisseurs à la shortlist pour comparer.</div></div>';
+    return;
+  }
+  const colors=["#00C896","#C4A35A","#5A8AB0","#E05252"];
+  const rows=[
+    {l:"Score",k:"score",fmt:v=>`${v}/100`,max:true},
+    {l:"Pays",k:"country",fmt:v=>v},
+    {l:"Délai (j)",k:"leadTime",fmt:v=>`${v}j`,min:true},
+    {l:"Min (€)",k:"minOrder",fmt:v=>`${v}€`,min:true},
+    {l:"Fiabilité",k:"reliability",fmt:v=>`${v}%`,max:true},
+    {l:"Qualité",k:"quality",fmt:v=>`${v}%`,max:true},
+    {l:"Prix",k:"pricing",fmt:v=>`${v}%`,max:true},
+    {l:"Flexibilité",k:"flexibility",fmt:v=>`${v}%`,max:true},
+    {l:"CA",k:"revenue",fmt:v=>v},
+    {l:"Statut",k:"status",fmt:v=>v},
+  ];
+  const radar=renderRadar();
+  document.getElementById('comparer-content').innerHTML=`
+    <div style="display:flex;justify-content:center;margin-bottom:16px">${radar}</div>
+    <div style="overflow-x:auto"><table class="compare-table">
+      <thead><tr><th>Critère</th>${shortlist.map((s,i)=>`<th class="center" style="color:${colors[i]}">${s.name.split(' ')[0]}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((row,ri)=>{
+        const vals=shortlist.map(s=>s[row.k]);
+        const nums=vals.filter(v=>typeof v==='number');
+        const best=row.max?Math.max(...nums):row.min?Math.min(...nums):null;
+        return`<tr style="background:${ri%2===0?'transparent':'#0F192320'}">`+
+          `<td style="color:#8A9BB0;font-size:10px">${row.l}</td>`+
+          shortlist.map(s=>{const isBest=best!==null&&s[row.k]===best;return`<td class="center${isBest?' best':''}">${row.fmt(s[row.k])}</td>`}).join('')+
+          `</tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    <div class="compare-actions">
+      <button class="btn-primary" onclick="askAICompare()">💬 Demander à l'IA</button>
+      <button class="btn-danger" onclick="shortlist=[];document.getElementById('stat-shortlist').textContent=0;document.getElementById('tab-comparer').textContent='⚖️ Comparer';renderList();renderComparer()">Vider</button>
+    </div>`;
+}
+
+function renderRadar(){
+  const W=220,H=220,cx=110,cy=110,R=78;
+  const dims=["reliability","quality","pricing","flexibility"];
+  const labels=["Fiabilité","Qualité","Prix","Flexibilité"];
+  const colors=["#00C896","#C4A35A","#5A8AB0","#E05252"];
+  const angle=i=>(i/dims.length)*2*Math.PI-Math.PI/2;
+  const pt=(i,v)=>{const a=angle(i),r=(v/100)*R;return[cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+  let svg=`<svg width="${W}" height="${H+28}" style="overflow:visible">`;
+  [25,50,75,100].forEach(ring=>{
+    svg+=`<polygon points="${dims.map((_,i)=>pt(i,ring).join(',')).join(' ')}" fill="none" stroke="#1E3A5F" stroke-width="1" stroke-dasharray="${ring<100?'3,3':'none'}"/>`;
+  });
+  dims.forEach((_,i)=>{const[x,y]=pt(i,100);svg+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#1E3A5F" stroke-width="1"/>`;});
+  dims.forEach((d,i)=>{const[x,y]=pt(i,115);svg+=`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" fill="#8A9BB0" font-size="9" font-family="Inter">${labels[i]}</text>`;});
+  shortlist.forEach((s,si)=>{
+    svg+=`<polygon points="${dims.map((d,i)=>pt(i,s[d]).join(',')).join(' ')}" fill="${colors[si]}25" stroke="${colors[si]}" stroke-width="2"/>`;
+  });
+  shortlist.forEach((s,si)=>{
+    svg+=`<circle cx="${14+si*55}" cy="${H+16}" r="5" fill="${colors[si]}"/>`;
+    svg+=`<text x="${22+si*55}" y="${H+20}" fill="#8A9BB0" font-size="8" font-family="IBM Plex Mono">${s.name.split(' ')[0]}</text>`;
+  });
+  svg+='</svg>';
+  return svg;
+}
+
+function askAICompare(){
+  const msg=`Compare ces fournisseurs et recommande le meilleur : ${shortlist.map(s=>s.name).join(', ')}`;
+  if(window.innerWidth<768) mobileTab('chat'); else switchTab('chat');
+  document.getElementById('chat-input').value=msg;
+  sendChat();
+}
+
+function renderEmail(){
+  if(!selected){document.getElementById('email-content').innerHTML='<div class="empty"><div class="empty-icon">✉️</div><div class="empty-text">Sélectionnez un fournisseur.</div></div>';return}
+  const s=selected;
+  document.getElementById('email-content').innerHTML=`
+    <div class="email-box">
+      <div class="email-top">
+        <div><div class="card-id">${s.id}</div><div class="email-name">${s.name}</div><div class="email-contact">${s.contact}</div></div>
+        <button class="btn-gen" id="gen-btn" onclick="generateEmail()">✨ Générer</button>
+      </div>
+    </div>
+    <div id="email-result-wrap"></div>`;
+}
+
+async function generateEmail(){
+  if(!selected) return;
+  document.getElementById('gen-btn').disabled=true;
+  document.getElementById('gen-btn').textContent='⏳...';
+  document.getElementById('email-result-wrap').innerHTML='';
+  const s=selected;
+  const prompt=`Rédigez un email professionnel de premier contact en français pour ${s.name}. Concis (150 mots max), mentionnez leur spécialité (${s.sector}, ${s.tags.join(', ')}), demandez un rendez-vous. Commencez par "Objet:" puis le corps.`;
+  try{
+    const res=await fetch('https://api.mistral.ai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${window.MISTRAL_API_KEY||''}`},
+      body:JSON.stringify({model:'mistral-small-latest',max_tokens:500,messages:[{role:'system',content:'Vous êtes un acheteur B2B. Répondez uniquement avec l\'email.'},{role:'user',content:prompt}]})
+    });
+    const d=await res.json();
+    const text=d.choices?.[0]?.message?.content||'Erreur.';
+    document.getElementById('email-result-wrap').innerHTML=`
+      <div class="email-result">
+        <div class="email-result-top"><span class="email-result-label">EMAIL IA</span>
+          <button class="btn-copy" id="copy-btn" onclick="copyEmail(this,'${encodeURIComponent(text)}')">📋 Copier</button>
+        </div>
+        <div class="email-text">${text}</div>
+      </div>`;
+  }catch(e){
+    document.getElementById('email-result-wrap').innerHTML='<div style="color:#E05252;font-size:12px;padding:10px">Erreur de génération.</div>';
+  }
+  document.getElementById('gen-btn').disabled=false;
+  document.getElementById('gen-btn').textContent='✨ Générer';
+}
+
+function copyEmail(btn,encoded){
+  navigator.clipboard.writeText(decodeURIComponent(encoded));
+  btn.textContent='✓ Copié !';btn.className='btn-copy copied';
+  setTimeout(()=>{btn.textContent='📋 Copier';btn.className='btn-copy'},2000);
+}
+
+// PWA install
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
+
+// Init
+renderList();
+mobileTab('list');
+
+// Expose API key from meta (set by server or manually)
+window.MISTRAL_API_KEY = 'm3U0TuMLICFlf9ceVgSt3nEiTdqNNoh2';
+</script>
+</body>
+</html>
